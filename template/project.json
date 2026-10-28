@@ -1,0 +1,33 @@
+{
+  "fps": 24,
+  "inputs": {
+    "dir": "../../Inputs",
+    "audio": "Final Audio.mp3",
+    "transcript": "Final Transcript.json",
+    "align_with": "guest"
+  },
+  "cameras": {
+    "host": {
+      "file": "Video Files/Diksha Angle.mp4",
+      "inset": [168, 250, 2947, 1910],
+      "cell": [497, 60, 2363, 2100],
+      "full": [1103, 0, 1215, 2160]
+    },
+    "guest": {
+      "file": "Video Files/Guest Angle.mp4",
+      "inset": [687, 270, 2469, 1600],
+      "cell": [732, 150, 2261, 2010],
+      "full": [1407, 200, 1080, 1920]
+    }
+  },
+  "screen": {
+    "file": null,
+    "crop": null
+  },
+  "_notes": [
+    "Crops are [x, y, w, h] in the camera's own pixels (usually 3840x2160). Get them from: python -I tools/framing.py suggest ...",
+    "inset -> 1460x946 (shown 972x630), cell -> 1080x960, full -> 1080x1920. Aspect is enforced by framing.py.",
+    "align_with: the camera whose recorded audio matches the final audio best (usually the one with the clean mix).",
+    "screen.file: the guest's screen recording, if any; screen.crop optional [x,y,w,h], output 1080 wide."
+  ]
+}

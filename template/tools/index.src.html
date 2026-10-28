@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <!-- Source file. Edit tools/index.src.html, then run: python -I tools/build.py -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "DM Sans Brand"; src: url("assets/fonts/DMSans_24pt-Regular.ttf"); font-weight: 400; font-style: normal; }
+      @font-face { font-family: "DM Sans Brand"; src: url("assets/fonts/DMSans_24pt-Medium.ttf"); font-weight: 500; font-style: normal; }
+      @font-face { font-family: "DM Sans Brand"; src: url("assets/fonts/DMSans_36pt-Bold.ttf"); font-weight: 700; font-style: normal; }
+      @font-face { font-family: "DM Sans Brand"; src: url("assets/fonts/DMSans_36pt-ExtraBold.ttf"); font-weight: 800; font-style: normal; }
+      @font-face { font-family: "DM Sans Brand"; src: url("assets/fonts/DMSans_36pt-Italic.ttf"); font-weight: 400; font-style: italic; }
+      @font-face { font-family: "DM Sans Brand"; src: url("assets/fonts/DMSans_36pt-MediumItalic.ttf"); font-weight: 500; font-style: italic; }
+      @font-face { font-family: "DM Sans Brand"; src: url("assets/fonts/DMSans_36pt-SemiBoldItalic.ttf"); font-weight: 600; font-style: italic; }
+
+      :root { --paper: #f7f3ea; --ink: #1a1a1a; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--paper); }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: "DM Sans Brand", sans-serif; color: var(--ink); }
+
+      /* ---------- background: warm paper (keep) ---------- */
+      #bg { position: absolute; inset: 0; background: var(--paper); }
+      #bg-glow { position: absolute; left: 90px; top: 60px; width: 900px; height: 900px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(242, 193, 78, 0.10), rgba(242, 193, 78, 0) 65%); }
+      #bg-fade { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 26%, rgba(247, 243, 234, 0) 45%, rgba(231, 222, 204, 0.55) 90%); }
+
+      /* ---------- graphics area: top half (keep) ---------- */
+      #gfx, #screen { position: absolute; left: 0; top: 0; width: 1080px; height: 960px; overflow: hidden; }
+      .scene { position: absolute; left: 0; top: 0; width: 1080px; height: 960px; overflow: hidden; }
+      .cam { position: absolute; left: 0; top: 0; width: 1080px; height: 960px; transform-origin: 0 0; }
+      .abs { position: absolute; }
+      #screen { opacity: 0; }
+      .world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }   /* zoom-through world drawn at 1/Z on a face */
+
+      /* ---------- people (keep) ---------- */
+      #inset { position: absolute; left: 54px; top: 1290px; width: 972px; height: 630px; border-radius: 44px 44px 0 0; overflow: hidden; background: #d9dde3; opacity: 0; }
+      .wrap { position: absolute; inset: 0; opacity: 0; }
+      .wrap video { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .cell { position: absolute; left: 0; width: 1080px; height: 960px; overflow: hidden; opacity: 0; }
+      .cell video { position: absolute; inset: 0; width: 100%; height: 100%; }
+      #st-guest { top: 0; }
+      #st-host { top: 960px; }
+      .cell.hf { top: 960px; }   /* half layout: animation on top, this camera below */
+      #seam { position: absolute; left: 0; right: 0; top: 957px; height: 6px; background: #fff; opacity: 0; box-shadow: 0 0 18px rgba(15, 23, 42, 0.22); }
+      .full { position: absolute; inset: 0; opacity: 0; }
+      .full video { position: absolute; inset: 0; width: 100%; height: 100%; }
+      /* captions: editor's Premiere style (DM Sans Bold, slightly tight tracking, white, soft black shadow), centred on the seam (keep) */
+      #caps { position: absolute; left: 0; width: 1080px; top: 916px; height: 92px; text-align: center; font-family: "DM Sans Brand", sans-serif;
+        font-weight: 700; font-size: 92px; line-height: 92px; letter-spacing: -0.02em; color: #fff; white-space: nowrap;
+        text-shadow: 3px 4px 10px rgba(0, 0, 0, 0.55), 0 0 26px rgba(0, 0, 0, 0.45), 2px 6px 40px rgba(0, 0, 0, 0.35); }
+      /* logo top-right: colour (overlay) over camera-only layouts, black wordmark over the animation (keep) */
+      #logoN { position: absolute; left: 800px; top: 24px; width: 250px; height: 250px; mix-blend-mode: overlay; }
+      #logoB { position: absolute; left: 853px; top: 84px; width: 173px; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-fps="24" data-start="0" data-duration="{{D}}" data-width="1080" data-height="1920">
+      <div id="bg"><div id="bg-glow"></div><div id="bg-fade"></div></div>
+
+      <div id="gfx">
+        <!-- ONE illustrated world on one camera. Replace the demo with the storyboard's world (see references/stickman-api.md). -->
+        <section id="s1" class="clip scene" data-start="0" data-duration="{{D}}" data-track-index="2">
+          <div class="cam" id="cam">
+            <svg id="outer" class="abs" style="left:0;top:0;width:1080px;height:960px;overflow:visible" viewBox="0 0 1080 960" data-layout-allow-overflow>
+              <path id="ground" d="M70 813C300 806 560 819 1010 810" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" />
+            </svg>
+          </div>
+        </section>
+      </div>
+
+      <div id="screen"><div class="cam" id="screen-cam"></div></div>
+
+      <div id="inset">
+        <div class="wrap" id="inset-guest"><video id="v-gi" class="clip" src="assets/guest_inset.mp4" muted playsinline data-start="0" data-duration="{{D}}" data-track-index="0"></video></div>
+        <div class="wrap" id="inset-host"><video id="v-hi" class="clip" src="assets/host_inset.mp4" muted playsinline data-start="0" data-duration="{{D}}" data-track-index="1"></video></div>
+      </div>
+      <div class="cell" id="st-guest"><video id="v-gc" class="clip" src="assets/guest_cell.mp4" muted playsinline data-start="0" data-duration="{{D}}" data-track-index="0"></video></div>
+      <div class="cell" id="st-host"><video id="v-hc" class="clip" src="assets/host_cell.mp4" muted playsinline data-start="0" data-duration="{{D}}" data-track-index="1"></video></div>
+      <div class="cell hf" id="hf-guest"><video id="v-gh" class="clip" src="assets/guest_half.mp4" muted playsinline data-start="0" data-duration="{{D}}" data-track-index="0"></video></div>
+      <div class="cell hf" id="hf-host"><video id="v-hh" class="clip" src="assets/host_half.mp4" muted playsinline data-start="0" data-duration="{{D}}" data-track-index="1"></video></div>
+      <div id="seam"></div>
+      <div class="full" id="full-guest"><video id="v-gf" class="clip" src="assets/guest_full.mp4" muted playsinline data-start="0" data-duration="{{D}}" data-track-index="0"></video></div>
+      <div class="full" id="full-host"><video id="v-hf" class="clip" src="assets/host_full.mp4" muted playsinline data-start="0" data-duration="{{D}}" data-track-index="1"></video></div>
+      <img id="logoN" src="assets/logo/quest_logo.png" alt="The Quest with Diksha" />
+      <img id="logoB" src="assets/logo/quest_wordmark_black.png" alt="The Quest with Diksha" />
+      <div id="caps"></div>
+
+      <audio id="voice" src="assets/voice.wav" data-start="0" data-duration="{{D}}" data-track-index="4" data-volume="1"></audio>
+      <audio id="sfx" src="assets/sfx.wav" data-start="0" data-duration="{{D}}" data-track-index="5" data-volume="0.8"></audio>
+    </div>
+
+    <script>
+      const DATA = __DATA__;
+      const tl = gsap.timeline({ paused: true });
+      /*__KIT__*/
+
+      applyLayouts();
+      SM.logoByLayout();
+      tl.fromTo("#bg-glow", { scale: 0.92, opacity: 0.8 }, { scale: 1.08, opacity: 1, duration: 4, ease: "sine.inOut", yoyo: true, repeat: 10 }, 0);
+
+      {
+        const { mk, ramp, ss, spr, lin, popAt, BL, brick, brickLabel, drop, dust, makeChar, pose, AP, mixA, walkArm, makeCloud, cloudWords, captions } = SM;
+        const q = (s) => document.querySelector(s);
+        const CAPS = [];   // paste assets/captions.json here (python -I tools/captions.py)
+        const cap = captions(CAPS, q("#caps"));
+
+        // ===================== DEMO (replace): a brick drops, a stick figure walks in and speaks in a cloud =====================
+        const outer = q("#outer"), b = mk("g", outer), fx = dust(outer);
+        brick(b, 360, 640, 360, 170, "#f2c14e", true);
+        const lab = brickLabel(b, 540, 745, 60, "#1a1a1a", "Layer 1");
+        fx.add(365, 812, T(2.6), -1); fx.add(715, 812, T(2.6), 1);
+        const guy = makeChar(outer, { tee: "#1d1d1d", bcol: "#4f7cac", hair: "tuft" });
+        const gx = lin([[2.8, 80], [4.6, 250]]);
+        const cl = makeCloud(outer, 560, 300, 230, 110, [270, 515], 10);
+        const say = cloudWords(cl, 560, 292, [[["Hello", 5.0], ["from", 5.3]], [["stickman!", 5.6]]], { size: 46, color: { "stickman!": "#2563eb" } });
+        camPath("#cam", [[0, [540, 560, 1.1]], [T(5.0), [480, 540, 1.18], 2.0]]);
+
+        driver((t) => {
+          q("#ground").setAttribute("stroke-dashoffset", (1 - ss(ramp(t, 2.0, 0.6))).toFixed(3));
+          b.setAttribute("transform", `translate(0 ${drop(t, T(2.2), 820).toFixed(1)})`);
+          fx.update(t);
+          const k = t - 3.2; popAt(lab, 540, 725, k > 0 ? 1.5 - 0.5 * spr(k) : 1.5); lab.setAttribute("opacity", ramp(k, 0, 0.06).toFixed(3));
+          const x = gx(t), amp = ramp(t, 2.8, 0.2) * (1 - ramp(t, 4.45, 0.2)), ph = x * 0.0314;
+          pose(guy, { x, y: 812, s: 0.9, face: 1, amp, ph, arm: (j) => mixA(walkArm(amp, ph, j), AP.wave(t, j), ramp(t, 4.8, 0.3)),
+            blink: BL(t, 0.4), mood: t > 5.0 ? "big" : "smile" });
+          popAt(cl.g, cl.ox, cl.oy, spr(t - 4.9));
+          say(t);
+          cap(t);
+        });
+      }
+
+      breathe("#gfx", 0, DUR);   // keep: the frame is never dead
+      auditOverlaps();
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

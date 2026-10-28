@@ -1,0 +1,30 @@
+{
+  "_help": [
+    "One row per layout change: [time in the FINAL audio (same clock as the final transcript), layout, camera].",
+    "layout: half (studio default: animation top half, this camera bottom half) | stack | full. camera: host | guest.",
+    "Put changes in pauses, or exactly on an audio join (both cameras jump there).",
+    "Audio joins are printed by conform.py (joins [...]) and available in the page as DATA.joins."
+  ],
+  "layout": [
+    [
+      0,
+      "stack",
+      null
+    ],
+    [
+      2.08,
+      "half",
+      "guest"
+    ],
+    [
+      9.0,
+      "half",
+      "host"
+    ],
+    [
+      10.4,
+      "half",
+      "guest"
+    ]
+  ]
+}

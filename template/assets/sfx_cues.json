@@ -1,0 +1,6 @@
+[
+  {"t": 0.0, "type": "whoosh", "args": {"d": 0.7, "lo": 250, "hi": 2600, "gain": 0.18}},
+  {"t": 1.2, "type": "pop", "args": {"gain": 0.1}},
+  {"t": 1.6, "type": "tick"},
+  {"t": 2.9, "type": "chime"}
+]
