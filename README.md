@@ -11,25 +11,24 @@ This repo **is** the skill folder, so cloning it puts the exact skill back in pl
 
 ---
 
-## Reinstall (new PC, or the skill got lost)
+## Install
 
-Run in PowerShell. **Install both skills**, because this one reads the shared kit notes in `diksha-clip/references/kit-api.md`:
-
-```powershell
-gh repo clone iamtanzib/diksha-clip-stickman-skill "$HOME\.claude\skills\diksha-clip-stickman"
-gh repo clone iamtanzib/diksha-clip-skill "$HOME\.claude\skills\diksha-clip"
+```bash
+npx skills add https://github.com/iamtanzib/diksha-clip-stickman-skill
 ```
 
-Restart Claude Code. The skill shows up as `diksha-clip-stickman`.
+Install the online skill too. This one reads the shared kit notes in `diksha-clip/references/kit-api.md`:
 
-If a clone fails because the folder already exists, rename the old folder first, then run the command again:
-`Rename-Item "$HOME\.claude\skills\diksha-clip-stickman" diksha-clip-stickman.old`
+```bash
+npx skills add https://github.com/iamtanzib/diksha-clip-skill
+```
 
-### First time on a fresh PC
+Restart Claude Code. The skills show up as `diksha-clip-stickman` and `diksha-clip`.
+
+### Needed on a fresh PC
 
 | Need | Install |
 |---|---|
-| Git + GitHub CLI, signed in | `winget install Git.Git GitHub.cli`, then `gh auth login --web` |
 | Claude Code | https://claude.com/claude-code |
 | Node.js 20+ (for `npx hyperframes`) | `winget install OpenJS.NodeJS.LTS` |
 | Python 3.12 + numpy + scipy | `winget install Python.Python.3.12`, then `pip install numpy scipy` |
@@ -45,7 +44,7 @@ Right-click `backup.ps1` → **Run with PowerShell**, or run:
 powershell -ExecutionPolicy Bypass -File "$HOME\.claude\skills\diksha-clip-stickman\backup.ps1"
 ```
 
-It saves every change, including new `log/used.md` entries, with a dated message and pushes it to GitHub. If nothing changed, it does nothing.
+It saves every change, including new `log/used.md` entries, with a dated message and pushes it to GitHub. If nothing changed, it does nothing. It only works from the folder this repo was cloned into: the original editing PC, or a `git clone` of the repo.
 
 **Pull the latest from GitHub** (for example, after editing on another PC):
 
@@ -85,6 +84,5 @@ template/               copied into every new clip project
 
 ## Notes
 
-- **Private repo.** It holds the client's logo and the editor's working notes. Keep it private.
 - Line endings are stored as-is (`.gitattributes`), so a clone is byte-for-byte the same as the original.
 - `SKILL.md` points to a reference clip and the logo source by absolute paths on the editing PC (`D:\…`, `E:\…`). Those are optional. The processed logo is already in `template/assets/logo/`.
