@@ -1,6 +1,6 @@
 """Cost report for a Claude Code session (what a clip actually cost, and where).
 
-    python -I ~/.claude/skills/diksha-clip/tools/usage.py                 # latest session of the Clip 1 project folder
+    python -I ~/.claude/skills/diksha-clip/tools/usage.py                 # newest session in any Diksha project folder
     python -I ~/.claude/skills/diksha-clip/tools/usage.py <session.jsonl>
 
 Weights (input-token equivalents): cache read 0.1, input 1, cache write 2 (1 h cache), output 5.
@@ -11,8 +11,8 @@ import json
 import sys
 from pathlib import Path
 
-PROJ = Path.home() / ".claude/projects/E--Diksha-Nastia-Podcast-Project-File-Clips-Claude-Clip-1"
-p = Path(sys.argv[1]) if len(sys.argv) > 1 else max(PROJ.glob("*.jsonl"), key=lambda f: f.stat().st_mtime)
+PROJ = Path.home() / ".claude/projects"
+p = Path(sys.argv[1]) if len(sys.argv) > 1 else max(PROJ.glob("*Diksha*/*.jsonl"), key=lambda f: f.stat().st_mtime)   # newest Diksha session
 seen, ctx, u = set(), [], collections.Counter()
 tools, imgs, users = collections.Counter(), 0, 0
 for line in p.open(encoding="utf-8"):

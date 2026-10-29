@@ -58,8 +58,12 @@ is the full worked example (inline copies of the same helpers).
   a crossfade cut or a box that "increases its size from nowhere".
 - Every arrival animates (drop + settle, draw-on, spring pop out of a source). Nothing appears without motion.
 - Ambient life on holds: breathing, blinks, steam, swaying plants, slow camera drift.
-- Shared kit rules still hold: camera keys 1.8-2.4 s `CAMV`; `landS` arrivals; no squash; followers computed in one `driver()`;
-  no still > 0.8 s; near-still <= 15% (motion_check); no motion blur.
+- Shared kit rules still hold: camera keys 1.8-2.4 s `CAMV` (or `camSpring`); `landS` arrivals; no squash; followers computed in one
+  `driver()`; no still > 0.8 s; near-still <= 15% (motion_check); no motion blur.
+- Any shape that changes into another (bubble -> sign, brick -> card, a UI element) follows diksha-clip `references/motion.md`: one shape
+  on springs (`boxTrack`), content swapped mid-flight with a short blur, shared elements travelling, never a cross-fade.
+- The editor may ask for the online UI style on a studio clip (Munnawar Clip 2): then build it exactly like motion.md + the online style,
+  keeping this skill's half layout, captions and logo.
 
 ## Metaphors
 - Liked in v1: the infectious-smile wave across a crowd (idea liked, execution broken); a fan thinking about what they love, the list building in.

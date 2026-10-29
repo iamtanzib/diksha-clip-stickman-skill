@@ -142,7 +142,8 @@ function cursorPath(cur, pts) {
 function click(cur, rip, t, x, y) {
   tl.to(cur, { scale: 0.82, duration: 0.09, ease: "power2.out" }, t);
   tl.to(cur, { scale: 1, duration: 0.18, ease: "power2.out" }, t + 0.09);
-  tl.fromTo(rip, { left: x, top: y, scale: 0.3, opacity: 0.9 }, { scale: 1.4, opacity: 0, duration: 0.55, ease: "power2.out", immediateRender: false }, t);
+  rip.style.left = x + "px"; rip.style.top = y + "px";   // static spot, not motion (a left/top tween trips lint)
+  tl.fromTo(rip, { scale: 0.3, opacity: 0.9 }, { scale: 1.4, opacity: 0, duration: 0.55, ease: "power2.out", immediateRender: false }, t);
 }
 
 // ---------- ambience ----------
@@ -458,4 +459,155 @@ const SM = (() => {
   }
 
   return { NS, INK, mk, ramp, ss, spr, lin, popAt, BL, shade, brick, brickLabel, drop, dust, makeChar, pose, AP, mixA, walkArm, makeCloud, cloudWords, HEART, faceCam, captions, logoByLayout };
+})();
+
+// ===================== MOTION ENGINE (Munnawar Clip 2, approved 2026-10-29) - read references/motion.md =====================
+// Every morph, camera move and travelling element is a pure function of t built from closed-form springs and applied in ONE
+// driver(). Measured on the editor's motion reference: a state change settles in ~0.5 s with ~5% overshoot, the leading edge
+// runs ahead of the trailing one, content swaps with a short blur, shared elements travel. Use these instead of morph()/flip().
+
+// Damped spring step response 0 -> 1, d seconds after the change. w = stiffness: 11 UI default, 6.5-8 for big size changes
+// (so the in-between frames are seen), 10-12 for small travels, 4.5 for the camera. z = damping (0.72 -> ~5% overshoot).
+function spring(d, w = 11, z = 0.72) {
+  if (d <= 0) return 0;
+  const wd = w * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w * d) * (Math.cos(wd * d) + ((z * w) / wd) * Math.sin(wd * d));
+}
+// A value (array) that changes target many times = the sum of one spring per change, so any key may interrupt the last one.
+// keys: [[t0, v0], [t, v, w?], ...] in time order. Returns f(t) -> array.
+function track(keys, w = 11, z = 0.72) {
+  return (t) => {
+    const v = keys[0][1].slice();
+    for (let i = 1; i < keys.length; i++) {
+      const u = spring(t - keys[i][0], keys[i][2] || w, z);
+      if (!u) break;
+      keys[i][1].forEach((b, j) => { v[j] += (b - keys[i - 1][1][j]) * u; });
+    }
+    return v;
+  };
+}
+// Box [x, y, w, h, radius]: every edge rides its own spring, edges moving with the travel 18% stiffer, against it 14% softer,
+// so the shape stretches as it travels and settles back. keys like track(). Returns f(t) -> [x, y, w, h, r].
+function boxTrack(keys, w = 11, z = 0.72) {
+  const edges = (b) => [b[0], b[1], b[0] + b[2], b[1] + b[3], b[4]];
+  return (t) => {
+    const e = edges(keys[0][1]);
+    for (let i = 1; i < keys.length; i++) {
+      const d = t - keys[i][0];
+      if (d <= 0) break;
+      const a = edges(keys[i - 1][1]), b = edges(keys[i][1]), ww = keys[i][2] || w;
+      const dc = [b[0] + b[2] - a[0] - a[2], b[1] + b[3] - a[1] - a[3]];
+      for (let j = 0; j < 5; j++) {
+        const lead = j === 4 ? 0 : dc[j % 2] * (b[j] - a[j]);
+        e[j] += (b[j] - a[j]) * spring(d, ww * (lead > 0 ? 1.18 : lead < 0 ? 0.86 : 1), z);
+      }
+    }
+    return [e[0], e[1], e[2] - e[0], e[3] - e[1], e[4]];
+  };
+}
+// Apply a box inside driver(). The element needs `position:absolute; left:0; top:0; overflow:hidden` (class .shape).
+// Position goes through translate (left/top snap to pixels and trip lint); GSAP may only tween its opacity/filter.
+function setBox(el, b) {
+  el.style.transform = `translate(${b[0].toFixed(2)}px, ${b[1].toFixed(2)}px)`;
+  el.style.width = Math.max(0, b[2]).toFixed(2) + "px";
+  el.style.height = Math.max(0, b[3]).toFixed(2) + "px";
+  el.style.borderRadius = Math.max(0, b[4]).toFixed(2) + "px";
+}
+// A fixed-size design layer (a designed thumbnail dw x dh) scaled to the box width and centred vertically. Pass the INNER
+// wrapper (transform-origin 0 0); swapIn/swapOut go on its parent so GSAP and the driver never write the same transform.
+function fitIn(layer, b, dw, dh) {
+  const s = b[2] / dw;
+  layer.style.transform = `translate(0px, ${((b[3] - dh * s) / 2).toFixed(2)}px) scale(${s.toFixed(4)})`;
+}
+// Content swap: in with a short blur (pass y = null for anything the driver positions), out faster. Exits start from an explicit
+// blur(0): tweening from "none" snaps.
+function swapIn(el, t, d = 0.26, y = 10) {
+  const from = { opacity: 0, filter: "blur(10px)" }, to = { opacity: 1, filter: "blur(0px)", duration: d, ease: "power2.out" };
+  if (y !== null) { from.y = y; to.y = 0; }
+  return tl.fromTo(el, from, to, t);
+}
+function swapOut(el, t, d = 0.14) {
+  return tl.fromTo(el, { filter: "blur(0px)" }, { opacity: 0, filter: "blur(8px)", duration: d, ease: "power1.in", immediateRender: false }, t);
+}
+const swapInAll = (els, t, gap = 0.045, y = 10) => els.forEach((s, i) => swapIn(s, t + i * gap, 0.26, y));
+const swapOutAll = (els, t, gap = 0.02) => els.forEach((s, i) => swapOut(s, t + i * gap));
+// Words land on the spoken words: wrapWords(el) once (plain text -> .w spans; needs `.w { display: inline-block }`), or write the
+// spans by hand for coloured words; then wordsLand(sel, times) with one time per .w (from seq()).
+function wrapWords(el) {
+  el = typeof el === "string" ? document.querySelector(el) : el;
+  el.innerHTML = el.textContent.trim().split(/\s+/).map((w) => `<span class="w">${w}</span>`).join(" ");
+}
+function wordsLand(sel, times) {
+  const ws = [...document.querySelectorAll(sel + " .w")];
+  if (ws.length !== times.length) throw new Error(`wordsLand ${sel}: ${ws.length} words, ${times.length} times`);
+  ws.forEach((w, i) => swapIn(w, times[i] - 0.04, 0.22, 10));
+}
+// Spoken phrase -> word start times, walking the transcript from `after` and skipping words that are spoken but not shown.
+function seq(str, after = 0) {
+  const norm = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}%]/gu, "");
+  let i = DATA.words.findIndex((w) => w.s >= after);
+  return str.split(" ").map((tok) => {
+    while (norm(DATA.words[i].w) !== norm(tok)) { i++; if (i >= DATA.words.length) throw new Error("seq: " + tok); }
+    return T(DATA.words[i++].s);
+  });
+}
+// Camera on springs: keys [[t, [cx, cy, zoom], w?], ...] (world point cx,cy goes to the panel centre VCX,VCY). Each key starts with
+// the morph it frames, on a softer spring than the morph (default w 4.5, ~1 s), so the shape leads and the camera follows.
+// shakes: [[t, amp=15]] one decaying hit for an impact word. Returns f(t) that sets the transform; call it in driver().
+function camSpring(sel, keys, { w = 4.5, z = 0.92, shakes = [] } = {}) {
+  const el = typeof sel === "string" ? document.querySelector(sel) : sel, c = track(keys, w, z);
+  return (t) => {
+    const v = c(t);
+    let sx = 0, sy = 0;
+    shakes.forEach(([t0, amp = 15]) => {
+      const d = t - t0;
+      if (d <= 0 || d >= 0.7) return;
+      const A = amp * Math.exp(-d * 6.5);
+      sx += A * Math.sin(d * 2 * Math.PI * 11); sy += A * 0.7 * Math.sin(d * 2 * Math.PI * 13 + 1);
+    });
+    el.style.transform = `translate(${(VCX - v[0] * v[2] + sx).toFixed(2)}px, ${(VCY - v[1] * v[2] + sy).toFixed(2)}px) scale(${v[2].toFixed(4)})`;
+  };
+}
+// Cursor press at t (the cursor's svg, transform-origin at the tip). Move the cursor itself with track() + translate in driver().
+function press(sel, t) {
+  tl.to(sel, { scale: 0.8, duration: 0.07, ease: "power1.in" }, t - 0.07);
+  tl.to(sel, { scale: 1, duration: 0.2, ease: "power2.out" }, t);
+}
+// Telegram-style delete: the row turns to dust swept left -> right. canvas: a <canvas> at (0, top) in the same coordinates as the
+// row, css size cw x ch, pixel size 2x. rects: [[x, y, w, h, count, [colours]], ...] where the row has ink (avatar, name, text),
+// in the row's coordinates. Returns { draw(t), clip(t) }: draw paints the particles, clip(t) is the clip-path for the row itself.
+function makeDust(canvas, rects, t0, { top = 0, cw = 860, ch = 260, x0 = 24, span = 780, sweep = 0.65, seed = 11 } = {}) {
+  const ctx = canvas.getContext("2d"); ctx.scale(2, 2);
+  let s = seed; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  const P = [];
+  rects.forEach(([rx, ry, rw, rh, n, cols]) => {
+    for (let i = 0; i < n; i++) {
+      const x = rx + rnd() * rw, y = ry + rnd() * rh;
+      P.push({ x, y: y - top, c: cols[Math.floor(rnd() * cols.length)], s: 1.6 + rnd() * 1.9, d: ((x - x0) / span) * sweep + rnd() * 0.08,
+        vx: 40 + rnd() * 110, vy: -(25 + rnd() * 110), l: 0.75 + rnd() * 0.55, ph: rnd() * 6.28 });
+    }
+  });
+  return {
+    clip: (t) => (t > t0 ? `inset(0px 0px 0px ${(x0 + clamp((t - t0) / sweep, 0, 1) * (span + 20)).toFixed(1)}px)` : "none"),
+    draw: (t) => {
+      const dd = t - t0;
+      ctx.clearRect(0, 0, cw, ch);
+      if (dd <= 0 || dd > sweep + 1.6) return;
+      for (const p of P) {
+        const a = dd - p.d;
+        if (a <= 0 || a >= p.l) continue;
+        const k = a / p.l, sz = p.s * (1 - 0.5 * k);
+        ctx.globalAlpha = (1 - k) * (1 - 0.3 * k);
+        ctx.fillStyle = p.c;
+        ctx.fillRect(p.x + p.vx * a + 10 * a * Math.sin(p.ph + a * 9), p.y + p.vy * a - 40 * a * a, sz, sz);
+      }
+      ctx.globalAlpha = 1;
+    },
+  };
+}
+// self-check: the spring settles, overshoots a little, and a track re-targets without a jump
+(() => {
+  const ok = Math.abs(spring(2) - 1) < 1e-3 && spring(0.41) > 1.02 && spring(0.41) < 1.06 && spring(0) === 0;
+  const f = track([[0, [0]], [1, [10]], [1.2, [4]]]);
+  if (!ok || Math.abs(f(1.2) - f(1.2001)) > 0.05 || Math.abs(f(9)[0] - 4) > 1e-3) console.error("MOTION ENGINE self-check failed");
 })();

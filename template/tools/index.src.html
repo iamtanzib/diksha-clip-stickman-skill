@@ -30,6 +30,11 @@
       .scene { position: absolute; left: 0; top: 0; width: 1080px; height: 960px; overflow: hidden; }
       .cam { position: absolute; left: 0; top: 0; width: 1080px; height: 960px; transform-origin: 0 0; }
       .abs { position: absolute; }
+      /* motion engine (kit MOTION ENGINE, references/motion.md): a morphing shape, its content layers, words that land on speech */
+      .shape { position: absolute; left: 0; top: 0; overflow: hidden; isolation: isolate; }
+      .hl { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border-radius: inherit; }
+      img.hl { object-fit: cover; }
+      .w { display: inline-block; }
       #screen { opacity: 0; }
       .world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }   /* zoom-through world drawn at 1/Z on a face */
 

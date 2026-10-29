@@ -1,6 +1,6 @@
 ---
 name: diksha-clip-stickman
-description: 'Build a finished vertical clip from a STUDIO episode of "The Quest with Diksha" (Diksha and the guest in person, no screen share) in the stickman style - hand-drawn illustrated animation on the top half (stick-figure characters, cloud speech bubbles, Lego-brick metaphors, one continuous world the camera zooms through), speaker camera on the bottom half, Diksha reaction cuts, burned-in captions and the channel logo. Use whenever the editor (Tahjib) brings a Diksha studio-episode clip, says "studio clip", "stickman clip" or "diksha clip stickman". Online episodes (remote guest, screen share) use diksha-clip instead; never mix the two styles.'
+description: 'Build a finished vertical clip from a STUDIO episode of "The Quest with Diksha" (Diksha and the guest in person, no screen share) in the stickman style - hand-drawn illustrated animation on the top half (stick-figure characters, cloud speech bubbles, Lego-brick metaphors, one continuous world the camera zooms through), speaker camera on the bottom half, Diksha reaction cuts, burned-in captions and the channel logo. Use ONLY when the editor (Tahjib) explicitly asks for the stickman style ("stickman clip", "diksha clip stickman", "illustrated style"). A studio clip without that request uses diksha-clip (casual white UI style, 50/50 half layout) - the editor chose that for Munnawar Clips 2-5. Never mix the two styles.'
 ---
 
 # Diksha clip - stickman (studio episodes)
@@ -11,6 +11,9 @@ One clip per session. Target: v1 approved after at most one round of notes.
 
 Read, in this order and only when the step needs it (each once):
 - `references/style.md` - the look, layout, captions, logo, motion rules, rejected list and the **first-output checklist**. Always before storyboarding.
+- `~/.claude/skills/diksha-clip/references/motion.md` - the approved motion physics (springs, morph choreography, content swaps, camera
+  spring + shake, morph QA strips). Applies to every clip; for UI-style studio clips (Munnawar Clip 2) it is the whole motion language.
+  The kit has the MOTION ENGINE block (helpers in diksha-clip `kit-api.md`, "Motion engine").
 - `log/used.md` - the newest ~4 clip blocks. Before storyboarding; append after delivery.
 - `references/stickman-api.md` - the `SM` library (bricks, stick-figure rig, clouds, zoom-through worlds, captions, logo) and recipes.
   Before writing scene code. Shared kit helpers (W, T, camPath, K, driver, landS, ...): `~/.claude/skills/diksha-clip/references/kit-api.md`.
@@ -50,6 +53,7 @@ Ask only: who says which lines if unclear, and must-have visuals. The channel lo
 6. **QA**: `python -I tools/qa.py` until no FAIL (caption contrast is auto-accepted), then in the background
    `python -I tools/qa.py --render --at <8-12 times> --full` and look at `qa/sheet.jpg` once (whole frames: captions + logo visible), then
    `python -I tools/sync_check.py renders/qa.mp4 guest <3 times where the guest is in the bottom half>` - must PASS.
+   Morph strips for every state change (motion.md section 7) before sending.
    Detail only for a flagged spot: `python -I tools/sheet.py renders/qa.mp4 <t> --crop x:y:w:h --w 540`.
 7. **Preview**: send the draft MP4 (SendUserFile) with a short list of what changed per note. Ask for all notes in one message.
 8. **Revise** with one batched patch per round (python replace script with asserted anchors, or `tools/patch.py`); re-render, re-sheet only
