@@ -36,6 +36,18 @@ Restart Claude Code. The skills show up as `diksha-clip-stickman` and `diksha-cl
 
 ---
 
+## Two devices (Windows + Mac): automatic sync
+
+Every session starts with `sync.py` (Step 0 in SKILL.md). It commits local changes, pulls the other device's changes and pushes.
+When the other device pushed something new, Claude starts with a short "skill updated" notice. `log/used.md` merges by union,
+so clips logged on both devices are all kept. Run it by hand any time:
+
+```bash
+python3 ~/.claude/skills/diksha-clip-stickman/sync.py      # macOS  (Windows: python)
+```
+
+Pushing needs the GitHub account that owns the repo: `gh auth login`, then `gh auth setup-git`.
+
 ## Back up after you change the skill
 
 Right-click `backup.ps1` → **Run with PowerShell**, or run:

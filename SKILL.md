@@ -23,6 +23,14 @@ Read, in this order and only when the step needs it (each once):
   `camera: one world`, `----- world 1: room`, `----- cafe`. Its helpers are inline; new clips use `SM` instead.
 - Do NOT read the online `style.md`/`concepts.md`, and do not load the generic HyperFrames skills unless a lint/check error is unclear.
 
+## Step 0: sync with the other device (FIRST command of every session, one Bash call)
+`(python3 ~/.claude/skills/diksha-clip-stickman/sync.py 2>/dev/null || python ~/.claude/skills/diksha-clip-stickman/sync.py) ; (python3 ~/.claude/skills/diksha-clip/sync.py 2>/dev/null || python ~/.claude/skills/diksha-clip/sync.py)`
+- `SKILL UPDATED`: before anything else, tell the editor in 1-2 lines what changed (from the listed commits/files). If `SKILL.md` is
+  listed, re-read it now (the copy in context is the old one); read changed references when their step needs them.
+- `SYNC WARNING`: mention it in one line and carry on with the local copy.
+- Last command of any session that appended to `log/used.md` or edited the skill: run the same line again so the other device gets it.
+- macOS: type `python3` wherever this skill says `python`.
+
 ## Inputs (ask once if anything is missing)
 In the clip folder's `Inputs/`: one camera file per person (host = Diksha, guest), the **final edited audio** and its word-level transcript
 JSON (`segments[].words[]` with start/end). Camera audio is only for alignment; the picture always plays against the final audio.
